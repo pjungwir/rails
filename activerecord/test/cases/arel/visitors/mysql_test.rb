@@ -200,6 +200,27 @@ module Arel
           }
         end
       end
+
+      describe "for_portion_of" do
+        it "defaults the lower bound to now() and the upper bound to the maximum timestamp" do
+          table = Table.new(:users)
+          um = Arel::UpdateManager.new(table)
+          um.set([[table[:name], Nodes.build_quoted("updated")]])
+          um.for_portion_of(:valid_at)
+          _(compile(um.ast)).must_be_like %{
+            UPDATE "users" FOR PORTION OF "valid_at" FROM now() TO '9999-12-31 23:59:59' SET "users"."name" = 'updated'
+          }
+        end
+
+        it "defaults only the upper bound when the lower bound is given" do
+          table = Table.new(:users)
+          dm = Arel::DeleteManager.new(table)
+          dm.for_portion_of(:valid_at, Nodes.build_quoted("2019-01-01"))
+          _(compile(dm.ast)).must_be_like %{
+            DELETE FROM "users" FOR PORTION OF "valid_at" FROM '2019-01-01' TO '9999-12-31 23:59:59'
+          }
+        end
+      end
     end
   end
 end

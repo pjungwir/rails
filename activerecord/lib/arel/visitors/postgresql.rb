@@ -23,6 +23,7 @@ module Arel # :nodoc: all
             collector = inject_join o.relation.right, collector, " "
           else
             collector = visit o.relation, collector
+            maybe_visit o.for_portion_of, collector
             collect_nodes_for o.values, collector, " SET "
           end
 

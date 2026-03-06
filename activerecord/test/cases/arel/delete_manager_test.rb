@@ -47,6 +47,55 @@ module Arel
       end
     end
 
+    describe "for_portion_of" do
+      it "generates a FOR PORTION OF clause" do
+        table = Table.new(:users)
+        dm = Arel::DeleteManager.new
+        dm.from table
+        dm.for_portion_of(:valid_at, Nodes::BindParam.new(1), Nodes::BindParam.new(2))
+        _(dm.to_sql).must_be_like %{
+          DELETE FROM "users" FOR PORTION OF "valid_at" FROM ? TO ?
+        }
+      end
+
+      it "chains" do
+        table = Table.new(:users)
+        dm = Arel::DeleteManager.new
+        _(dm.for_portion_of(:valid_at, Nodes::BindParam.new(1), Nodes::BindParam.new(2))).must_equal dm
+      end
+
+      it "generates FOR PORTION OF with WHERE" do
+        table = Table.new(:users)
+        dm = Arel::DeleteManager.new
+        dm.from table
+        dm.for_portion_of(:valid_at, Nodes::BindParam.new(1), Nodes::BindParam.new(2))
+        dm.where Nodes::SqlLiteral.new('"users"."id" = 10')
+        _(dm.to_sql).must_be_like %{
+          DELETE FROM "users" FOR PORTION OF "valid_at" FROM ? TO ? WHERE "users"."id" = 10
+        }
+      end
+
+      it "defaults both bounds when only the period is given" do
+        table = Table.new(:users)
+        dm = Arel::DeleteManager.new
+        dm.from table
+        dm.for_portion_of(:valid_at)
+        _(dm.to_sql).must_be_like %{
+          DELETE FROM "users" FOR PORTION OF "valid_at" FROM now() TO NULL
+        }
+      end
+
+      it "defaults the upper bound when only the lower bound is given" do
+        table = Table.new(:users)
+        dm = Arel::DeleteManager.new
+        dm.from table
+        dm.for_portion_of(:valid_at, Nodes::BindParam.new(1))
+        _(dm.to_sql).must_be_like %{
+          DELETE FROM "users" FOR PORTION OF "valid_at" FROM ? TO NULL
+        }
+      end
+    end
+
     private
       def build_manager(table = nil)
         Arel::DeleteManager.new(table)

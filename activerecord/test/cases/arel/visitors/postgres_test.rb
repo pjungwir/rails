@@ -331,6 +331,42 @@ module Arel
           _(sql).must_be_like %{ "products"."tags" && '{foo,bar,baz}' }
         end
       end
+
+      describe "for_portion_of" do
+        it "emits FOR PORTION OF for UPDATE" do
+          um = Arel::UpdateManager.new(@table)
+          um.set([[@table[:name], Nodes.build_quoted("updated")]])
+          um.for_portion_of(:valid_at, Nodes.build_quoted("2019-01-01"), Nodes.build_quoted("2020-01-01"))
+          _(compile(um.ast)).must_be_like %{
+            UPDATE "users" FOR PORTION OF "valid_at" FROM '2019-01-01' TO '2020-01-01' SET "name" = 'updated'
+          }
+        end
+
+        it "emits FOR PORTION OF for DELETE" do
+          dm = Arel::DeleteManager.new(@table)
+          dm.for_portion_of(:valid_at, Nodes.build_quoted("2019-01-01"), Nodes.build_quoted("2020-01-01"))
+          _(compile(dm.ast)).must_be_like %{
+            DELETE FROM "users" FOR PORTION OF "valid_at" FROM '2019-01-01' TO '2020-01-01'
+          }
+        end
+
+        it "defaults the lower bound to now() and the upper bound to NULL" do
+          um = Arel::UpdateManager.new(@table)
+          um.set([[@table[:name], Nodes.build_quoted("updated")]])
+          um.for_portion_of(:valid_at)
+          _(compile(um.ast)).must_be_like %{
+            UPDATE "users" FOR PORTION OF "valid_at" FROM now() TO NULL SET "name" = 'updated'
+          }
+        end
+
+        it "defaults only the upper bound when the lower bound is given" do
+          dm = Arel::DeleteManager.new(@table)
+          dm.for_portion_of(:valid_at, Nodes.build_quoted("2019-01-01"))
+          _(compile(dm.ast)).must_be_like %{
+            DELETE FROM "users" FOR PORTION OF "valid_at" FROM '2019-01-01' TO NULL
+          }
+        end
+      end
     end
   end
 end

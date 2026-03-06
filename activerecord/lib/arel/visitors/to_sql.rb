@@ -31,6 +31,7 @@ module Arel # :nodoc: all
             collector << "DELETE FROM "
           end
           collector = visit o.relation, collector
+          maybe_visit o.for_portion_of, collector
 
           collect_nodes_for o.wheres, collector, " WHERE ", " AND "
           collect_nodes_for o.orders, collector, " ORDER BY "
@@ -44,12 +45,35 @@ module Arel # :nodoc: all
 
           collector << "UPDATE "
           collector = visit o.relation, collector
+          maybe_visit o.for_portion_of, collector
           collect_nodes_for o.values, collector, " SET "
 
           collect_nodes_for o.wheres, collector, " WHERE ", " AND "
           collect_nodes_for o.orders, collector, " ORDER BY "
           maybe_visit o.limit, collector
           maybe_visit o.comment, collector
+        end
+
+        def visit_Arel_Nodes_ForPortionOf(o, collector)
+          collector << "FOR PORTION OF "
+          collector << quote_column_name(o.period)
+          collector << " FROM "
+          collector = o.lower ? visit(o.lower, collector) : collector << for_portion_of_lower_default
+          collector << " TO "
+          o.upper ? visit(o.upper, collector) : collector << for_portion_of_upper_default
+        end
+
+        # SQL fragment used as the lower bound of a FOR PORTION OF clause when
+        # none is given. Defaults to the current time.
+        def for_portion_of_lower_default
+          "now()"
+        end
+
+        # SQL fragment used as the upper bound of a FOR PORTION OF clause when
+        # none is given. Defaults to +NULL+, i.e. the open (unbounded) end of a
+        # PostgreSQL range. MariaDB overrides this with its maximum timestamp.
+        def for_portion_of_upper_default
+          "NULL"
         end
 
         def visit_Arel_Nodes_InsertStatement(o, collector)

@@ -1,3 +1,24 @@
+*   Add Arel support for `UPDATE`/`DELETE ... FOR PORTION OF`.
+
+    `Arel::UpdateManager` and `Arel::DeleteManager` now accept a `for_portion_of`
+    clause, generating the SQL:2011 temporal `FOR PORTION OF` syntax supported by
+    PostgreSQL 19+ and MariaDB. Only the portion of a row overlapping the given
+    period bounds is updated or deleted; non-overlapping portions are preserved.
+
+    ```ruby
+    Arel::UpdateManager.new(table).
+      set([[table[:name], value]]).
+      for_portion_of(:valid_at, lower, upper)
+    # UPDATE "rooms" FOR PORTION OF "valid_at" FROM <lower> TO <upper> SET "name" = ...
+    ```
+
+    The bounds are optional but positional: to pass `upper` you must also pass
+    `lower`. When omitted, `lower` defaults to `now()` and `upper` defaults to the
+    open end of the period (`NULL` on PostgreSQL, the maximum timestamp on
+    MariaDB).
+
+    *Paul A. Jungwirth*
+
 *   Avoid issuing a `ROLLBACK` statement following `TransactionRollbackError` during `COMMIT`.
 
     This prevents the unnecessary "WARNING: there is no transaction in progress" log spilled to stderr directly from libpq.

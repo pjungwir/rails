@@ -152,6 +152,7 @@ module Arel # :nodoc: all
           visit_edge o, "offset"
           visit_edge o, "comment"
           visit_edge o, "key"
+          visit_edge o, "for_portion_of"
         end
 
         def visit_Arel_Nodes_DeleteStatement(o)
@@ -162,6 +163,13 @@ module Arel # :nodoc: all
           visit_edge o, "offset"
           visit_edge o, "comment"
           visit_edge o, "key"
+          visit_edge o, "for_portion_of"
+        end
+
+        def visit_Arel_Nodes_ForPortionOf(o)
+          visit_edge o, "period"
+          visit_edge o, "lower"
+          visit_edge o, "upper"
         end
 
         def visit_Arel_Table(o)

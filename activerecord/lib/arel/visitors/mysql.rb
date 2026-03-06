@@ -10,6 +10,12 @@ module Arel # :nodoc: all
           collector << " AS BINARY)"
         end
 
+        # MariaDB period columns are +NOT NULL+, so the open end of a period is
+        # represented by the maximum representable timestamp rather than +NULL+.
+        def for_portion_of_upper_default
+          "'9999-12-31 23:59:59'"
+        end
+
         def visit_Arel_Nodes_UnqualifiedColumn(o, collector)
           visit o.expr, collector
         end

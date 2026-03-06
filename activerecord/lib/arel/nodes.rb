@@ -71,3 +71,4 @@ require "arel/nodes/sql_literal"
 require "arel/nodes/bound_sql_literal"
 
 require "arel/nodes/casted"
+require "arel/nodes/for_portion_of"

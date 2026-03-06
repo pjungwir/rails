@@ -171,6 +171,59 @@ module Arel
       end
     end
 
+    describe "for_portion_of" do
+      it "generates a FOR PORTION OF clause" do
+        table = Table.new(:users)
+        um = Arel::UpdateManager.new
+        um.table table
+        um.set [[table[:name], Nodes::BindParam.new(1)]]
+        um.for_portion_of(:valid_at, Nodes::BindParam.new(2), Nodes::BindParam.new(3))
+        _(um.to_sql).must_be_like %{
+          UPDATE "users" FOR PORTION OF "valid_at" FROM ? TO ? SET "name" = ?
+        }
+      end
+
+      it "chains" do
+        table = Table.new(:users)
+        um = Arel::UpdateManager.new
+        _(um.for_portion_of(:valid_at, Nodes::BindParam.new(1), Nodes::BindParam.new(2))).must_equal um
+      end
+
+      it "can be replaced" do
+        table = Table.new(:users)
+        um = Arel::UpdateManager.new
+        um.table table
+        um.set [[table[:name], Nodes::BindParam.new(1)]]
+        um.for_portion_of(:valid_at, Nodes::BindParam.new(2), Nodes::BindParam.new(3))
+        um.for_portion_of(:other_period, Nodes::BindParam.new(4), Nodes::BindParam.new(5))
+        _(um.to_sql).must_be_like %{
+          UPDATE "users" FOR PORTION OF "other_period" FROM ? TO ? SET "name" = ?
+        }
+      end
+
+      it "defaults both bounds when only the period is given" do
+        table = Table.new(:users)
+        um = Arel::UpdateManager.new
+        um.table table
+        um.set [[table[:name], Nodes::BindParam.new(1)]]
+        um.for_portion_of(:valid_at)
+        _(um.to_sql).must_be_like %{
+          UPDATE "users" FOR PORTION OF "valid_at" FROM now() TO NULL SET "name" = ?
+        }
+      end
+
+      it "defaults the upper bound when only the lower bound is given" do
+        table = Table.new(:users)
+        um = Arel::UpdateManager.new
+        um.table table
+        um.set [[table[:name], Nodes::BindParam.new(1)]]
+        um.for_portion_of(:valid_at, Nodes::BindParam.new(2))
+        _(um.to_sql).must_be_like %{
+          UPDATE "users" FOR PORTION OF "valid_at" FROM ? TO NULL SET "name" = ?
+        }
+      end
+    end
+
     private
       def build_manager(table = nil)
         Arel::UpdateManager.new(table)
